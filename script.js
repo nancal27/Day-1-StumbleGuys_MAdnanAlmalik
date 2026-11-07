@@ -1,146 +1,132 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+const form = document.getElementById("task-form");
+const titleInput = document.getElementById("task-title");
+const deadlineInput = document.getElementById("task-deadline");
+const taskList = document.getElementById("task-list");
+const emptyMessage = document.getElementById("empty-message");
+const filterButtons = document.querySelectorAll(".filter-btn");
+
+// Daftar tugas disimpan di variabel ini (hilang saat refresh)
+let tasks = [];
+let currentFilter = "all";
+
+// Tambah tugas baru
+form.addEventListener("submit", function (event) {
+  event.preventDefault();
+
+  const task = {
+    id: Date.now(),
+    title: titleInput.value.trim(),
+    deadline: deadlineInput.value,
+    done: false
+  };
+
+  tasks.push(task);
+  form.reset();
+  renderTasks();
+});
+
+// Ganti filter saat tombol diklik
+filterButtons.forEach(function (button) {
+  button.addEventListener("click", function () {
+    currentFilter = button.dataset.filter;
+
+    filterButtons.forEach(function (btn) {
+      btn.classList.remove("active");
+    });
+    button.classList.add("active");
+
+    renderTasks();
+  });
+});
+
+// Tandai selesai / belum selesai
+function toggleTask(id) {
+  tasks = tasks.map(function (task) {
+    if (task.id === id) {
+      return { ...task, done: !task.done };
+    }
+    return task;
+  });
+  renderTasks();
 }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f4f6fb;
-  color: #222;
-  padding: 20px;
-  min-height: 100vh;
+// Hapus tugas
+function deleteTask(id) {
+  tasks = tasks.filter(function (task) {
+    return task.id !== id;
+  });
+  renderTasks();
 }
 
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  background: #fff;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+// Tampilkan daftar sesuai filter
+function renderTasks() {
+  taskList.innerHTML = "";
+
+  const filtered = tasks.filter(function (task) {
+    if (currentFilter === "pending") return !task.done;
+    if (currentFilter === "done") return task.done;
+    return true;
+  });
+
+  // Urutkan berdasarkan deadline terdekat
+  filtered.sort(function (a, b) {
+    return new Date(a.deadline) - new Date(b.deadline);
+  });
+
+  filtered.forEach(function (task) {
+    const li = document.createElement("li");
+    li.className = "task-item";
+
+    const info = document.createElement("div");
+    info.className = "task-info";
+
+    const title = document.createElement("div");
+    title.className = "task-title" + (task.done ? " done" : "");
+    title.textContent = task.title;
+
+    const deadline = document.createElement("div");
+    deadline.className = "task-deadline";
+    deadline.textContent = "Deadline: " + formatDate(task.deadline);
+
+    info.appendChild(title);
+    info.appendChild(deadline);
+
+    const actions = document.createElement("div");
+    actions.className = "task-actions";
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "toggle-btn" + (task.done ? " undone" : "");
+    toggleBtn.textContent = task.done ? "Batal" : "Selesai";
+    toggleBtn.addEventListener("click", function () {
+      toggleTask(task.id);
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "delete-btn";
+    deleteBtn.textContent = "Hapus";
+    deleteBtn.addEventListener("click", function () {
+      deleteTask(task.id);
+    });
+
+    actions.appendChild(toggleBtn);
+    actions.appendChild(deleteBtn);
+
+    li.appendChild(info);
+    li.appendChild(actions);
+    taskList.appendChild(li);
+  });
+
+  emptyMessage.style.display = filtered.length === 0 ? "block" : "none";
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #3b5bdb;
+// Ubah format tanggal jadi contoh: 15 Mar 2026
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric"
+  });
 }
 
-#task-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-#task-form input {
-  flex: 1;
-  min-width: 150px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-button {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  background: #3b5bdb;
-  color: #fff;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-button:hover {
-  opacity: 0.9;
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.filter-btn {
-  background: #e9ecef;
-  color: #333;
-}
-
-.filter-btn.active {
-  background: #3b5bdb;
-  color: #fff;
-}
-
-#task-list {
-  list-style: none;
-}
-
-.task-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #e3e6ef;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.task-info {
-  flex: 1;
-  min-width: 150px;
-}
-
-.task-title {
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.task-title.done {
-  text-decoration: line-through;
-  color: #888;
-}
-
-.task-deadline {
-  font-size: 13px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.task-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.toggle-btn {
-  background: #2f9e44;
-}
-
-.toggle-btn.undone {
-  background: #f08c00;
-}
-
-.delete-btn {
-  background: #e03131;
-}
-
-.empty {
-  text-align: center;
-  color: #888;
-  margin-top: 16px;
-}
-
-@media (max-width: 480px) {
-  .container {
-    padding: 16px;
-  }
-
-  #task-form input,
-  #task-form button {
-    width: 100%;
-  }
-}
+renderTasks();
